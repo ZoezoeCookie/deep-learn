@@ -107,4 +107,4 @@ deep-learn/
 
 ## License
 
-待定
+MIT
