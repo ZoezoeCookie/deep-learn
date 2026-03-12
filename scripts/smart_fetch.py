@@ -106,7 +106,7 @@ def setup_dependencies(force=False):
         print("📦 安装 x-reader（万能内容读取器）...")
         subprocess.run(
             [str(VENV_PYTHON), "-m", "pip", "install",
-             "git+https://github.com/runesleo/x-reader.git", "-q"],
+             "git+https://github.com/runesleo/x-reader.git@fdd582ccd39c70375d0dba176faeea2e59159ba9", "-q"],
             check=True
         )
 
@@ -367,7 +367,7 @@ def main():
     # 确保依赖已安装
     status = check_dependencies()
     if not status["x-reader"]:
-        print("⚠️ x-reader 未安装，正在自动安装...", file=sys.stderr)
+        print("⚠️ 依赖未安装，正在自动安装...", file=sys.stderr)
         setup_dependencies()
 
     # 解析参数
@@ -378,11 +378,11 @@ def main():
         if args[i] == "-o" and i + 1 < len(args):
             output_file = args[i + 1]
             i += 2
-        elif args[i].startswith("http"):
+        elif args[i].startswith("http://") or args[i].startswith("https://"):
             urls.append(args[i])
             i += 1
         else:
-            urls.append(args[i])
+            print(f"⚠️ 跳过非 HTTP(S) 输入: {args[i]}", file=sys.stderr)
             i += 1
 
     results = []
@@ -409,7 +409,13 @@ def main():
     output = "\n".join(output_parts)
 
     if output_file:
-        Path(output_file).write_text(output, encoding="utf-8")
+        # 安全检查：禁止绝对路径和路径遍历
+        out_path = Path(output_file)
+        if out_path.is_absolute() or ".." in out_path.parts:
+            print("❌ 安全限制：输出路径不能是绝对路径或包含 '..'", file=sys.stderr)
+            sys.exit(1)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_text(output, encoding="utf-8")
         print(f"📁 已保存到 {output_file}", file=sys.stderr)
     else:
         print(output)
